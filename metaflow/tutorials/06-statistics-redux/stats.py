@@ -1,5 +1,3 @@
-# 1. Rewrite stats.py correctly
-cat <<'EOF' > stats.py
 import os
 import csv
 from metaflow import FlowSpec, step, IncludeFile
@@ -58,7 +56,3 @@ class MovieStatsFlow(FlowSpec):
 
 if __name__ == '__main__':
     MovieStatsFlow()
-EOF
-
-# 2. Run the code to verify
-python stats.py run
