@@ -1,6 +1,8 @@
+# 1. Rewrite stats.py correctly
+cat <<'EOF' > stats.py
 import os
-from metaflow import FlowSpec, step, IncludeFile
 import csv
+from metaflow import FlowSpec, step, IncludeFile
 
 def script_path(filename):
     return os.path.join(os.path.dirname(__file__), filename)
@@ -14,11 +16,8 @@ class MovieStatsFlow(FlowSpec):
 
     @step
     def start(self):
-        lines = [line for line in self.movie_data.split('\n') if line]
-        reader = csv.DictReader(lines)
-        self.data = [row for row in reader]
-        
-        # Consistent with Tutorial 02 logic
+        lines = [line for line in self.movie_data.splitlines() if line]
+        self.data = list(csv.DictReader(lines))
         self.genres = list({
             genre for row in self.data
             for genre in row['genres'].split('|')
@@ -32,35 +31,34 @@ class MovieStatsFlow(FlowSpec):
             row for row in self.data 
             if self.genre in row['genres'].split('|')
         ]
-        
-        # Matches Tutorial 02: Direct cast (fails if data is bad, which mentors prefer for tutorials)
         scores = sorted([int(row['gross']) for row in genre_data])
-        
-        if scores:
-            n = len(scores)
+        n = len(scores)
+        if n > 0:
             self.quartiles = [
-                scores[n // 4],
-                scores[n // 2],
-                scores[3 * n // 4]
+                scores[0 if n < 2 else round(n * 0.25)],
+                scores[0 if n < 2 else round(n * 0.5)],
+                scores[0 if n < 2 else round(n * 0.75)],
             ]
         else:
             self.quartiles = [0, 0, 0]
-            
         self.count = len(genre_data)
         self.next(self.join)
 
     @step
     def join(self, inputs):
-        # FIX: Added .lower() to the key to match Tutorial 02 consistency
         self.genre_stats = {
-            inp.genre.lower(): {'count': inp.count, 'quartiles': inp.quartiles}
+            inp.genre.lower(): (inp.count, inp.quartiles)
             for inp in inputs
         }
         self.next(self.end)
 
     @step
     def end(self):
-        print("Statistics computation complete.")
+        print("Flow finished successfully.")
 
 if __name__ == '__main__':
     MovieStatsFlow()
+EOF
+
+# 2. Run the code to verify
+python stats.py run
